@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git zip unzip autoconf automake libtool libltdl-dev pkg-config zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev openjdk-17-jdk python3-pip
-          pip install --upgrade buildozer cython
+          pip install --upgrade buildozer cython==0.29.36
 
       - name: Build APK
         run: |
