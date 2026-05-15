@@ -9,7 +9,7 @@ requirements = python3,kivy==2.3.0,pandas==2.0.3,yfinance==0.2.43,numpy==1.24.4,
 orientation = portrait
 fullscreen = 0
 android.api = 33
-android.minapi = 21
+android.minapi = 24
 android.ndk = 25b
 android.sdk = 33
 android.permissions = INTERNET,ACCESS_NETWORK_STATE,WAKE_LOCK
