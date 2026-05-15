@@ -1,0 +1,71 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      embed_keys:
+        description: 'Embed API keys in APK? (not recommended)'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install Buildozer & Dependencies
+        run: |
+          pip install buildozer cython
+          sudo apt update
+          sudo apt install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Embed API Keys (optional)
+        if: ${{ github.event.inputs.embed_keys == 'true' }}
+        run: |
+          cd android-app
+          python -c "
+          import re
+          with open('app/main.py', 'r') as f:
+              content = f.read()
+          content = content.replace(
+              \"delta_key = os.environ.get('DELTA_API_KEY', '')\",
+              \"delta_key = '${{ secrets.DELTA_API_KEY }}'\"
+          )
+          content = content.replace(
+              \"delta_secret = os.environ.get('DELTA_API_SECRET', '')\",
+              \"delta_secret = '${{ secrets.DELTA_API_SECRET }}'\"
+          )
+          with open('app/main.py', 'w') as f:
+              f.write(content)
+          print('API keys embedded from GitHub Secrets')
+          "
+
+      - name: Build APK
+        run: |
+          cd android-app
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-agent-apk
+          path: android-app/bin/*.apk
