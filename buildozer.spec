@@ -5,7 +5,7 @@ package.domain = org.delta.agent
 source.dir = app
 source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
-requirements = python3,kivy==2.3.0,pandas==2.0.3,yfinance==0.2.43,numpy==1.24.4,delta-rest-client==1.2.0,requests==2.31.0,android
+requirements = python3,kivy==2.2.1,delta-rest-client==1.2.0,android
 orientation = portrait
 fullscreen = 0
 android.api = 33

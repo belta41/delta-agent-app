@@ -3,6 +3,7 @@ import sys
 import time
 import threading
 import json
+import urllib.request
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -16,8 +17,6 @@ if platform == 'android':
     from android.permissions import request_permissions, Permission
     request_permissions([Permission.INTERNET, Permission.WRITE_EXTERNAL_STORAGE])
 
-import pandas as pd
-import yfinance as yf
 from delta_connector import DeltaConnector
 
 
@@ -31,16 +30,39 @@ class EliteAgent:
         self.running = False
         self.connector = None
         self.logs = []
-        self.top_coins = ["BTC-USD", "ETH-USD", "SOL-USD"]
+        self.top_coins = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+        self.price_history = {s: [] for s in self.top_coins}
 
-    def compute_rsi(self, close, period=14):
-        delta = close.diff()
-        gain = delta.clip(lower=0)
-        loss = (-delta).clip(lower=0)
-        avg_gain = gain.ewm(alpha=1/period, min_periods=period).mean()
-        avg_loss = loss.ewm(alpha=1/period, min_periods=period).mean()
+    def fetch_klines(self, symbol, limit=30):
+        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit={limit}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+        closes = [float(k[4]) for k in data]
+        return closes
+
+    def compute_rsi(self, closes, period=14):
+        if len(closes) < period + 1:
+            return 50
+        gains, losses = 0, 0
+        for i in range(len(closes) - period, len(closes) - 1):
+            diff = closes[i+1] - closes[i]
+            if diff > 0: gains += diff
+            else: losses -= diff
+        avg_gain = gains / period
+        avg_loss = losses / period
+        if avg_loss == 0: return 100
         rs = avg_gain / avg_loss
         return 100 - 100 / (1 + rs)
+
+    def compute_ema(self, closes, period=20):
+        if len(closes) < period:
+            return closes[-1] if closes else 0
+        multiplier = 2 / (period + 1)
+        ema = sum(closes[:period]) / period
+        for price in closes[period:]:
+            ema = (price - ema) * multiplier + ema
+        return ema
 
     def run_cycle(self):
         if not self.running:
@@ -48,14 +70,10 @@ class EliteAgent:
 
         for symbol in self.top_coins:
             try:
-                df = yf.download(symbol, period="1d", interval="15m", progress=False)
-                if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = df.columns.get_level_values(0)
-
-                close = df['Close']
-                ema_20 = close.ewm(span=20, adjust=False).mean().iloc[-1]
-                price = float(close.iloc[-1])
-                rsi = self.compute_rsi(close).iloc[-1]
+                closes = self.fetch_klines(symbol)
+                price = closes[-1]
+                ema_20 = self.compute_ema(closes)
+                rsi = self.compute_rsi(closes)
 
                 signal = "NONE"
                 if price > ema_20 * 1.005:
