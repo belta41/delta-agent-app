@@ -34,35 +34,13 @@ jobs:
 
       - name: Install Buildozer & Dependencies
         run: |
-          pip install buildozer cython
           sudo apt update
-          sudo apt install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
-
-      - name: Embed API Keys (optional)
-        if: ${{ github.event.inputs.embed_keys == 'true' }}
-        run: |
-          cd android-app
-          python -c "
-          import re
-          with open('app/main.py', 'r') as f:
-              content = f.read()
-          content = content.replace(
-              \"delta_key = os.environ.get('DELTA_API_KEY', '')\",
-              \"delta_key = '${{ secrets.DELTA_API_KEY }}'\"
-          )
-          content = content.replace(
-              \"delta_secret = os.environ.get('DELTA_API_SECRET', '')\",
-              \"delta_secret = '${{ secrets.DELTA_API_SECRET }}'\"
-          )
-          with open('app/main.py', 'w') as f:
-              f.write(content)
-          print('API keys embedded from GitHub Secrets')
-          "
+          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev openjdk-17-jdk python3-pip
+          pip install --upgrade buildozer cython
 
       - name: Build APK
         run: |
-          cd android-app
-          buildozer android debug
+          yes | buildozer android debug 2>&1
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
