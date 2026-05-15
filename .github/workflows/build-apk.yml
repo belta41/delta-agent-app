@@ -38,7 +38,7 @@ jobs:
           sudo apt install -y git zip unzip autoconf automake libtool libltdl-dev pkg-config zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev openjdk-17-jdk python3-pip
           pip install --upgrade buildozer cython==0.29.36
           # Pin p4a to version that builds Python 3.11 (Python 3.14 removed 'cgi' module)
-          pip install python-for-android==2023.9.1
+          pip install python-for-android==2023.9.16
 
       - name: Build APK
         run: |
